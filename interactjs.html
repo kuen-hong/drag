@@ -33,11 +33,17 @@
       width: 20%;
       height: 500px;
     }
-    .cctv {
+    .kit {
       width: 50px;
       height: 50px;
-      background-image: url("icon/cctv.svg");
       background-size: cover;
+      display: inline-block;
+    }
+    .cardreader {
+      background-image: url("icon/credit-card.svg");
+    }
+    .cctv {
+      background-image: url("icon/cctv.svg");
     }
   </style>
 </head>
@@ -47,6 +53,7 @@
   </div>
   <div class="toolkit">
     <div class="kit cctv new"></div>
+    <div class="kit cardreader new"></div>
   </div>
 </section>
 <section>
@@ -82,12 +89,17 @@ interact('.landscape').dropzone({
       dragEl.style.position = null;
       dragEl.style.left = null;
       dragEl.style.top = null;
+      let x = event.dragEvent.client.x - (dragEl.offsetLeft);
+      let y = event.dragEvent.client.y - dragEl.offsetTop;
+      dragEl.style.transform = `translate(${x}px, ${y}px)`;
+      dragEl.setAttribute('data-x', x);
+      dragEl.setAttribute('data-y', y);
       dragEl.classList.remove('new');
     }
   },
 });
 
-interact('.kit')
+interact('.landscape .kit')
   .draggable({
     // enable inertial throwing
     inertia: true,
