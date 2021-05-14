@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>interactjs demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    body > section {
+      width: 100%;
+    }
+    .workspace {
+      display: flex;
+    }
+    .landscape {
+      border-radius: 20px;
+      border-style: outset;
+      background-image: url("icon/map.png");
+      background-size: cover;
+      padding: 10px;
+      width: 80%;
+      height: 500px;
+    }
+    .toolkit {
+      padding: 10px;
+      width: 20%;
+      height: 500px;
+    }
+    .cctv {
+      width: 50px;
+      height: 50px;
+      background-image: url("icon/cctv.svg");
+      background-size: cover;
+    }
+  </style>
+</head>
+<body>
+<section class="workspace">
+  <div class="landscape">
+  </div>
+  <div class="toolkit">
+    <div class="kit cctv new"></div>
+  </div>
+</section>
+<section>
+  <button onclick="save()">save</button>
+  <button onclick="clean()">clean</button>
+</section>
+<script>
+let landscape = document.querySelector('.landscape');
+function save() {
+  window.localStorage.setItem('interactjs', landscape.innerHTML);
+}
+function clean() {
+  console.log('clean');
+  window.localStorage.removeItem('interactjs');
+  landscape.innerHTML = '';
+}
+let content = window.localStorage.getItem('interactjs');
+if (content) {
+  landscape.innerHTML = content;
+}
+</script>
+<script type="module">
+import interact from 'https://cdn.interactjs.io/v1.10.11/interactjs/index.js';
+
+interact('.landscape').dropzone({
+  accept: '.kit',
+  overlap: 0.75,
+  ondrop: function(event) {
+    console.log('drop', event);
+    let dragEl = event.relatedTarget;
+    if (dragEl.classList.contains('new')) {
+      event.currentTarget.appendChild(dragEl);
+      dragEl.style.position = null;
+      dragEl.style.left = null;
+      dragEl.style.top = null;
+      dragEl.classList.remove('new');
+    }
+  },
+});
+
+interact('.kit')
+  .draggable({
+    // enable inertial throwing
+    inertia: true,
+    // keep the element within the area of it's parent
+    modifiers: [
+      interact.modifiers.restrictRect({
+        restriction: 'parent',
+        endOnly: true
+      })
+    ],
+    listeners: {
+      // call this function on every dragmove event
+      move: dragMoveListener,
+
+      // call this function on every dragend event
+      end(event) {
+        console.log('drag end');
+      }
+    }
+  });
+
+function dragMoveListener(event) {
+  var target = event.target
+  // keep the dragged position in the data-x/data-y attributes
+  var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx
+  var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy
+
+  // translate the element
+  target.style.transform = 'translate(' + x + 'px, ' + y + 'px)'
+
+  // update the posiion attributes
+  target.setAttribute('data-x', x)
+  target.setAttribute('data-y', y)
+}
+
+const position = { x: 0, y: 0 };
+
+interact('.toolkit .kit')
+  .draggable({
+    manualStart: true,
+    listeners: {
+      move(event) {
+        position.x += event.dx;
+        position.y += event.dy;
+        event.target.style.transform = `translate(${position.x}px, ${position.y}px)`;
+      }
+    }
+  })
+  .on('move', function (event) {
+    const { currentTarget, interaction } = event;
+    let element = currentTarget;
+
+    // If we are dragging an item from the sidebar, its transform value will be ''
+    // We need to clone it, and then start moving the clone
+    if (
+      interaction.pointerIsDown &&
+      !interaction.interacting() &&
+      currentTarget.style.transform === ""
+    ) {
+      element = currentTarget.cloneNode(true);
+
+      // Add absolute positioning so that cloned object lives
+      // right on top of the original object
+      element.style.position = "absolute";
+      element.style.left = 0;
+      element.style.top = 0;
+
+      // Add the cloned object to the document
+      const container = document.querySelector('.toolkit');
+      container && container.appendChild(element);
+
+      const { offsetTop, offsetLeft } = currentTarget;
+      position.x = offsetLeft;
+      position.y = offsetTop;
+
+      // If we are moving an already existing item, we need to make sure
+      // the position object has the correct values before we start dragging it
+    } else if (interaction.pointerIsDown && !interaction.interacting()) {
+      const regex = /translate\(([\d]+)px, ([\d]+)px\)/i;
+      const transform = regex.exec(currentTarget.style.transform);
+
+      if (transform && transform.length > 1) {
+        position.x = Number(transform[1]);
+        position.y = Number(transform[2]);
+      }
+    }
+
+    // Start the drag event
+    interaction.start({ name: "drag" }, event.interactable, element);
+  });
+</script>
+</body>
+</html>
